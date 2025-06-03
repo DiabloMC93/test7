@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuestionario Interactivo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Estilo para deshabilitar clics después de responder una pregunta */
+        .answered label {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .question-card {
+            transition: opacity 0.5s ease-in-out;
+        }
+        .nav-button {
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+        }
+        .nav-button:hover {
+            transform: translateY(-2px);
+        }
+        .nav-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .option-label:hover {
+             background-color: #374151; /* slate-700 for hover */
+        }
+        .option-label.selected {
+            background-color: #111618; /* sky-600 */
+            border-color: #000000; /* sky-500 */
+        }
+        .option-label.correct {
+            background-color: #166534 !important; /* green-700 */
+            border-color: #15803d !important; /* green-600 */
+            color: white;
+        }
+        .option-label.incorrect-selected {
+            background-color: #9f1239 !important; /* rose-700 */
+            border-color: #e11d48 !important; /* rose-600 */
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-neutral-900 text-gray-100 min-h-screen p-4 sm:p-8 flex flex-col items-center justify-center">
+
+    <div class="w-full max-w-2xl bg-slate-800 p-6 sm:p-8 rounded-xl shadow-2xl">
+        <header class="mb-6 text-center">
+            <h1 class="text-3xl sm:text-4xl font-bold text-sky-400">Cuestionario de Soporte Vital</h1>
+            <p class="text-slate-400 mt-2">Selecciona una respuesta para cada pregunta.</p>
+            <p class="text-xs text-amber-400 mt-2">
+                <strong>Importante:</strong> CREADO POR JMC.
+            </p>
+        </header>
+
+        <div id="score-board" class="flex justify-around mb-6 p-4 bg-slate-700 rounded-lg shadow-md text-sm sm:text-base">
+            <div>
+                <span class="font-semibold text-green-400">Acertadas: </span>
+                <span id="correct-count" class="text-lg font-bold text-green-300">0</span>
+            </div>
+            <div>
+                <span class="font-semibold text-red-400">Falladas: </span>
+                <span id="incorrect-count" class="text-lg font-bold text-red-300">0</span>
+            </div>
+            <div>
+                <span class="font-semibold text-blue-400">Pendientes: </span>
+                <span id="pending-count" class="text-lg font-bold text-blue-300">0</span>
+            </div>
+        </div>
+
+        <div id="question-area" class="mb-6">
+            <div id="question-counter" class="text-center text-slate-400 mb-4 font-semibold"></div>
+            <div id="current-question-card" class="question-card bg-slate-800 p-0 rounded-lg">
+                </div>
+        </div>
+
+        <div id="navigation-controls" class="flex justify-between items-center mb-6">
+            <button id="prev-btn" onclick="previousQuestion()" class="nav-button bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 px-4 sm:px-6 rounded-lg shadow-md">Anterior</button>
+            <button id="next-btn" onclick="nextQuestion()" class="nav-button bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 px-4 sm:px-6 rounded-lg shadow-md">Siguiente</button>
+        </div>
+        
+        <div id="feedback-message" class="text-center h-6 mb-4">
+            </div>
+
+        <div id="final-score-container" class="mt-8 p-6 bg-slate-700 rounded-lg shadow-md text-center hidden">
+            <h2 class="text-2xl font-bold text-sky-400 mb-4">¡Cuestionario Completado!</h2>
+            <p class="text-xl">Tu puntuación final es:</p>
+            <p class="text-3xl font-bold my-2">
+                <span id="final-correct" class="text-green-400">0</span> Acertadas / <span id="final-total" class="text-gray-100">0</span> Totales
+            </p>
+            <button onclick="restartQuiz()" class="mt-6 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-8 rounded-lg shadow transition-colors duration-150 text-lg">
+                Reiniciar Cuestionario
+            </button>
+        </div>
+
+    </div>
+
+    <footer class="mt-10 text-center text-sm text-slate-500">
+        <p>&copy; 2025 Cuestionario Interactivo. Adaptado para fines demostrativos.</p>
+    </footer>
+
+    <script>
+        // --- DATOS DE LAS PREGUNTAS ---
+        // IMPORTANTE: Debes rellenar este array con todas tus preguntas.
+        // 'id': Un identificador único para la pregunta.
+        // 'question': El texto de la pregunta.
+        // 'options': Un array de strings, donde cada string es una opción de respuesta.
+        // 'correctAnswerIndex': El índice (empezando en 0) de la respuesta correcta en el array 'options'.
+        //                     ¡ESTE ES EL CAMPO MÁS IMPORTANTE QUE DEBES CONFIGURAR CORRECTAMENTE!
+        // 'selectedAnswerIndex': null por defecto, se actualiza cuando el usuario responde.
+        // 'isCorrect': null por defecto, se actualiza a true/false después de responder.
+
+        let questionsData = [
+      {
+    "id": 121,
+    "question": "101. Ante una TVSP:",
+    "options": [
+      "MCE previo mientras preparamos desfibrilador y desfibrialr 200J bifásico",
+      "Primero ventilaría con Ambú a 100% de O2",
+      "Pondría Adrenalina lo antes posible",
+      "Tras la cuarta descarga pondría Atropina 1mg"
+    ],
+    "correctAnswerIndex": 0,
+    "selectedAnswerIndex": null,
+    "isCorrect": null
+  },
+  {
+    "id": 122,
+    "question": "102. Está usted en la puerta de un domicilio, y están tratando a un paciente que acaba de sufrir una PCR de más de 5min. Durante la monitorización EKG descubres esta tira de ritmo, ¿cuál sería su primera actuación? (aparece tira de FV)",
+    "options": [
+      "Preparar laringoscopio y tubo orotraqueal",
+      "Mirar si funciona el marcapasos interno. Es ritmo marcapasos",
+      "MCE previo y preparar desfibrilador, cargando a 200J y aplicar gel en las palas",
+      "Preparar las galletas del marcapasos, pues es muy probable que el médico quiera marcapasos a este paciente"
+    ],
+    "correctAnswerIndex": 2,
+    "selectedAnswerIndex": null,
+    "isCorrect": null
+  },
+  {
+    "id": 123,
+    "question": "103. Señale la respuesta falsa:",
+    "options": [
+      "Un signo de inestabilidad respiratoria es una respiración mayor a 35rpm",
+      "En la técnica de aspiración no se puede superar una presión superior a 350mmHg",
+      "Tras una desfibrilación hay que hacer RCP",
+      "El objetivo de la RCP Básica es mantener al paciente con una oxigenación de emergencia y una circulación de emergencia"
+    ],
+    "correctAnswerIndex": 1,
+    "selectedAnswerIndex": null,
+    "isCorrect": null
+  },
+  {
+    "id": 124,
+    "question": "104. Se considera taquicardia sensual cuando la FC es:",
+    "options": [
+      "230-350 lpm",
+      "150-250 lpm",
+      "100-160 lpm",
+      "140-250 lpm"
+    ],
+    "correctAnswerIndex": 2,
+    "selectedAnswerIndex": null,
+    "isCorrect": null
+  },
+  {
+    "id": 125,
+    "question": "105. En una bradicardia hay que evaluar la presencia de signos adversos. Señala el incorrecto:",
+    "options": [
+      "Síncope",
+      "Hipertermia",
+      "Shock",
+      "Isquemia miocárdica"
+    ],
+    "correctAnswerIndex": 1,
+    "selectedAnswerIndex": null,
+    "isCorrect": null
+  },
+  {
+    "id": 126,
+    "question": "106. En la taquicardia irregular de complejo esteroho se controla la FC con:",
+    "options": [
+      "Diltiazem/fl-bloqueante",
+      "Dolantina",
+      "Metfomina",
+      "Amiodarona"
+    ],
+    "correctAnswerIndex": 0,
+    "selectedAnswerIndex": null,
+    "isCorrect": null
+  },
+  {
+    "id": 127,
+    "question": "107. ¿Cuándo se pone un paciente en posición lateral de seguridad?",
+    "options": [
+      "Cuando está inconsciente",
+      "Inconsciente y no respira",
+      "Inconsciente, respira y tiene pulso",
+      "Inconsciente, respira y no tiene pulso"
+    ],
+    "correctAnswerIndex": 2,
+    "selectedAnswerIndex": null,
+    "isCorrect": null
+  },
+  {
+    "id": 128,
+    "question": "108. Si al efectuar el diagnóstico ECG por monitorización con las palas de un desfibrilador por bajo nivel de conciencia y presenciamos el cambio a una FV, procedemos inicialmente:",
+    "options": [
+      "Intubar, administrar Lidocaína, bicarbonato y desfibrilar con 200J",
+      "Desfibrilar de inmediato con 360J",
+      "Desfibrilar de inmediato con 200J",
+      "Ventilación y masaje mientras carga el desfibrilador y se aplica pasta conductora a las palas"
+    ],
+    "correctAnswerIndex": 2,
+    "selectedAnswerIndex": null,
+    "isCorrect": null
+  },
+  {
+    "id": 129,
+    "question": "109. La segunda vía de elección en la PCR en niños y en adultos es:",
+    "options": [
+      "Intraósea",
+      "Vía central",
+      "Intracecal",
+      "Periférica"
+    ],
+    "correctAnswerIndex": 0,
+    "selectedAnswerIndex": null,
+    "isCorrect": null
+  },
+  {
+    "id": 130,
+    "question": "110. En cuál de los siguientes enunciados estaría indicado instaurar una vía aérea definitiva:",
+    "options": [
+      "SpO2 del 91%",
+      "El paciente localiza el dolor, tiene una conversación confusa y abre los ojos como respuesta al dolor",
+      "Inconsciencia =",
+      "En todas las anteriores"
+    ],
+    "correctAnswerIndex": 2,
+    "selectedAnswerIndex": null,
+    "isCorrect": null
+  },
+  {
+    "id": 131,
+    "question": "111. Los eslabones de la Cadena de Supervivencia son:",
+    "options": [
+      "Desfibrilación precoz, llamada, RCPB, RCPA",
+      "Desfibrilación precoz, RCPA, llamada, RCPB",
+      "Desfibrilación precoz, llamada, RCPA, RCPB",
+      "Llamada, RCPB, desfibrilación precoz, RCPA"
+    ],
+    "correctAnswerIndex": 3,
+    "selectedAnswerIndex": null,
+    "isCorrect": null
+  },
+  {
+    "id": 132,
+    "question": "112. El fármaco prioritario en la PCR es:",
+    "options": [
+      "Adrenalina",
+      "Atropina",
+      "A y B son correctas",
+      "Bicarbonato"
+    ],
+    "correctAnswerIndex": 0,
+    "selectedAnswerIndex": null,
+    "isCorrect": null
+  },
+  {
+    "id": 133,
+    "question": "113. En un lactante, consciente ante un atragantamiento lo primero que haríamos sería:",
+    "options": [
+      "Incitarle a toser",
+      "Golpes interescapulares",
+      "Heimlich",
+      "RCP"
+    ],
+    "correctAnswerIndex": 1,
+    "selectedAnswerIndex": null,
+    "isCorrect": null
+  },
+  {
+    "id": 134,
+    "question": "114. La Amiodarona:",
+    "options": [
+      "Se utiliza en las bradiarritmias",
+      "Antiarrítmico de elección en los ritmos desfibrilables",
+      "A y B son ciertas",
+      "Si la arritmia está mal tolerada es de 1º elección"
+    ],
+    "correctAnswerIndex": 1,
+    "selectedAnswerIndex": null,
+    "isCorrect": null
+  },
+  {
+    "id": 135,
+    "question": "115. Las cánulas orofaríngeas en el adulto se miden:",
+    "options": [
+      "De la glotis a la vallécula",
+      "No hace falta medirla",
+      "Desde la comisura bucal hasta el lóbulo de la oreja en todos los pacientes",
+      "Desde la comisura bucal hasta el lóbulo de la oreja"
+    ],
+    "correctAnswerIndex": 3,
+    "selectedAnswerIndex": null,
+    "isCorrect": null
+  },
+  {
+    "id": 136,
+    "question": "116. ¿Cuál de las siguientes afirmaciones es correcta respecto a las complicaciones de las cánulas orofaríngeas?",
+    "options": [
+      "Un tamaño inadecuado puede producir obstrucción de la vía aérea",
+      "La lengua puede desplazarse hacia atrás al coloca la cánula y colapsar las vías aéreas",
+      "Si el paciente no está totalmente inconsciente puede provocar el vómito",
+      "Todas las respuestas anteriores son correctas"
+    ],
+    "correctAnswerIndex": 3,
+    "selectedAnswerIndex": null,
+    "isCorrect": null
+  },
+  {
+    "id": 137,
+    "question": "117. Llega un paciente de 56a con sudoración, dolor en el pecho, pálido y con 285lpm, ¿cuál sería nuestra primera opción? (aparece una tira con TSV)",
+    "options": [
+      "Vía, oxígeno, analgesia, sedación y CVES",
+      "Vía, oxígeno y amiodarona 300mg",
+      "Vía, oxígeno y adenosina 6mg",
+      "Atropina 0’5 hasta máximo de 3mg"
+    ],
+    "correctAnswerIndex": 0,
+    "selectedAnswerIndex": null,
+    "isCorrect": null
+  },
+  {
+    "id": 138,
+    "question": "118. (Question 118 is missing in the PDF, this is a placeholder for numbering consistency if it were present, or it can be skipped. I will use the next available question from the PDF which is numbered 119, but refers to content as if it were 98)",
+    "options": [],
+    "correctAnswerIndex": null,
+    "selectedAnswerIndex": null,
+    "isCorrect": null
+  },
+  {
+    "id": 139,
+    "question": "119. (Corresponds to Q98 in PDF content) Los eslabones de la Cadena de Supervivencia son:",
+    "options": [
+      "Desfibrilación precoz, llamada, RCPB, RCPA",
+      "Desfibrilación precoz, RCPA, llamada, RCPB",
+      "Desfibrilación precoz, llamada, RCPA, RCPB",
+      "Llamada, RCPB, desfibrilación precoz, RCPA"
+    ],
+    "correctAnswerIndex": 3,
+    "selectedAnswerIndex": null,
+    "isCorrect": null
+  },
+  {
+    "id": 140,
+    "question": "120. (Corresponds to Q92 in PDF content) El fármaco prioritario en la PCR es:",
+    "options": [
+      "Adrenalina",
+      "Atropina",
+      "A y B son correctas",
+      "Bicarbonato"
+    ],
+    "correctAnswerIndex": 0,
+    "selectedAnswerIndex": null,
+    "isCorrect": null
+  },
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = { correct: 0, incorrect: 0 };
+
+        const questionCardEl = document.getElementById('current-question-card');
+        const correctCountEl = document.getElementById('correct-count');
+        const incorrectCountEl = document.getElementById('incorrect-count');
+        const pendingCountEl = document.getElementById('pending-count');
+        const finalScoreContainer = document.getElementById('final-score-container');
+        const finalCorrectEl = document.getElementById('final-correct');
+        const finalTotalEl = document.getElementById('final-total');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const questionCounterEl = document.getElementById('question-counter');
+        const feedbackMessageEl = document.getElementById('feedback-message');
+        const questionAreaEl = document.getElementById('question-area');
+        const navigationControlsEl = document.getElementById('navigation-controls');
+        const scoreBoardEl = document.getElementById('score-board');
+
+
+        function displayCurrentQuestion() {
+            if (currentQuestionIndex >= questionsData.length) {
+                showFinalScore();
+                return;
+            }
+            questionAreaEl.classList.remove('hidden');
+            navigationControlsEl.classList.remove('hidden');
+            scoreBoardEl.classList.remove('hidden');
+            finalScoreContainer.classList.add('hidden');
+
+
+            const qData = questionsData[currentQuestionIndex];
+            questionCardEl.style.opacity = 0; // Para efecto de fade
+
+            // Pequeño retraso para que la transición de opacidad sea visible
+            setTimeout(() => {
+                let optionsHTML = '';
+                qData.options.forEach((option, optionIndex) => {
+                    let labelClasses = "option-label block p-3 my-2 rounded-md border border-slate-600 transition-colors duration-150 cursor-pointer";
+                    // Si la pregunta ya fue respondida, aplicar estilos
+                    if (qData.selectedAnswerIndex !== null) {
+                        if (optionIndex === qData.correctAnswerIndex) {
+                            labelClasses += ' correct';
+                        }
+                        if (optionIndex === qData.selectedAnswerIndex) {
+                            labelClasses += qData.isCorrect ? ' selected' : ' incorrect-selected selected';
+                        }
+                    }
+
+                    optionsHTML += `
+                        <label class="${labelClasses}">
+                            <input type="radio" name="question-${qData.id}" value="${optionIndex}" class="mr-3 sr-only" 
+                                   onchange="handleAnswer(${optionIndex})" ${qData.selectedAnswerIndex !== null ? 'disabled' : ''}>
+                            ${String.fromCharCode(97 + optionIndex)}) ${option}
+                        </label>
+                    `;
+                });
+
+                questionCardEl.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <h3 class="text-lg sm:text-xl font-semibold mb-4 text-sky-300">${qData.question}</h3>
+                        <span id="feedback-icon-${qData.id}" class="text-2xl ml-4">
+                            ${qData.selectedAnswerIndex !== null ? (qData.isCorrect ? '<span class="text-green-500">✔</span>' : '<span class="text-red-500">✖</span>') : ''}
+                        </span>
+                    </div>
+                    <div class="options-container space-y-2 ${qData.selectedAnswerIndex !== null ? 'answered' : ''}">
+                        ${optionsHTML}
+                    </div>
+                `;
+                questionCardEl.style.opacity = 1;
+            }, 100); // 100ms para el fade, puedes ajustar
+
+            updateNavigationButtons();
+            updateScoreDisplay();
+            questionCounterEl.textContent = `Pregunta ${currentQuestionIndex + 1} de ${questionsData.length}`;
+            feedbackMessageEl.textContent = ''; // Limpiar mensaje de feedback
+        }
+
+        function handleAnswer(selectedOptionIndex) {
+            const qData = questionsData[currentQuestionIndex];
+            if (qData.selectedAnswerIndex !== null) return; // Ya respondida
+
+            qData.selectedAnswerIndex = selectedOptionIndex;
+            const feedbackIconEl = document.getElementById(`feedback-icon-${qData.id}`);
+
+            if (selectedOptionIndex === qData.correctAnswerIndex) {
+                qData.isCorrect = true;
+                score.correct++;
+                if(feedbackIconEl) feedbackIconEl.innerHTML = '<span class="text-green-500">✔</span>';
+            } else {
+                qData.isCorrect = false;
+                score.incorrect++;
+                if(feedbackIconEl) feedbackIconEl.innerHTML = '<span class="text-red-500">✖</span>';
+            }
+            
+            // Re-renderizar la pregunta actual para mostrar los estilos de correcto/incorrecto y deshabilitar opciones
+            displayCurrentQuestion(); 
+            updateScoreDisplay();
+        }
+
+        function updateNavigationButtons() {
+            prevBtn.disabled = currentQuestionIndex === 0;
+            if (currentQuestionIndex === questionsData.length -1) {
+                 nextBtn.textContent = "Finalizar";
+            } else if (currentQuestionIndex >= questionsData.length) {
+                 nextBtn.classList.add('hidden'); // Ocultar si ya se finalizó
+                 prevBtn.classList.add('hidden');
+            }
+            else {
+                nextBtn.textContent = "Siguiente";
+                nextBtn.classList.remove('hidden');
+                prevBtn.classList.remove('hidden');
+            }
+        }
+        
+        function nextQuestion() {
+            const qData = questionsData[currentQuestionIndex];
+            if (qData.selectedAnswerIndex === null && currentQuestionIndex < questionsData.length) {
+                feedbackMessageEl.textContent = 'Por favor, selecciona una opción antes de continuar.';
+                setTimeout(() => { feedbackMessageEl.textContent = ''; }, 3000);
+                return;
+            }
+
+            if (currentQuestionIndex < questionsData.length - 1) {
+                currentQuestionIndex++;
+                displayCurrentQuestion();
+            } else if (currentQuestionIndex === questionsData.length - 1) {
+                // Última pregunta, mostrar puntaje final
+                currentQuestionIndex++; // Para que la condición de finalización se cumpla
+                showFinalScore();
+            }
+        }
+
+        function previousQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                displayCurrentQuestion();
+            }
+        }
+
+        function updateScoreDisplay() {
+            correctCountEl.textContent = score.correct;
+            incorrectCountEl.textContent = score.incorrect;
+            const answeredCount = score.correct + score.incorrect;
+            pendingCountEl.textContent = questionsData.length - answeredCount;
+        }
+
+        function showFinalScore() {
+            questionAreaEl.classList.add('hidden');
+            navigationControlsEl.classList.add('hidden');
+            scoreBoardEl.classList.add('hidden');
+            feedbackMessageEl.textContent = '';
+
+            finalCorrectEl.textContent = score.correct;
+            finalTotalEl.textContent = questionsData.length;
+            finalScoreContainer.classList.remove('hidden');
+            finalScoreContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function restartQuiz() {
+            currentQuestionIndex = 0;
+            score = { correct: 0, incorrect: 0 };
+            questionsData.forEach(q => {
+                q.selectedAnswerIndex = null;
+                q.isCorrect = null;
+            });
+            finalScoreContainer.classList.add('hidden');
+            displayCurrentQuestion();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (questionsData.length > 0) {
+                displayCurrentQuestion();
+            } else {
+                questionCardEl.innerHTML = '<p class="text-center text-red-400">No hay preguntas cargadas. Por favor, añade preguntas en el array `questionsData` en el script.</p>';
+                navigationControlsEl.classList.add('hidden');
+                scoreBoardEl.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
