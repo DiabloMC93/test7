@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Examen de Enfermería Geriátrica - Bloque 3</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f1f5f9;
+        }
+
+        .option-card {
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: 2px solid #334155;
+        }
+
+        .option-card:hover {
+            border-color: #6366f1;
+            background-color: #1e293b;
+        }
+
+        .option-card.correct {
+            border-color: #22c55e;
+            background-color: #064e3b;
+        }
+
+        .option-card.incorrect {
+            border-color: #ef4444;
+            background-color: #7f1d1d;
+        }
+
+        .progress-bar {
+            transition: width 0.4s ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- Header / Stats -->
+    <div class="max-w-3xl w-full mb-6 grid grid-cols-3 gap-4">
+        <div class="bg-slate-800 p-4 rounded-xl text-center border border-slate-700 shadow-lg">
+            <p class="text-xs uppercase tracking-wider text-slate-400">Progreso</p>
+            <p id="current-index" class="text-xl md:text-2xl font-bold">1 / 21</p>
+        </div>
+        <div class="bg-slate-800 p-4 rounded-xl text-center border border-slate-700 shadow-lg">
+            <p class="text-xs uppercase tracking-wider text-green-400">Aciertos</p>
+            <p id="correct-count" class="text-xl md:text-2xl font-bold text-green-500">0</p>
+        </div>
+        <div class="bg-slate-800 p-4 rounded-xl text-center border border-slate-700 shadow-lg">
+            <p class="text-xs uppercase tracking-wider text-red-400">Errores</p>
+            <p id="wrong-count" class="text-xl md:text-2xl font-bold text-red-500">0</p>
+        </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="max-w-3xl w-full bg-slate-800 h-2 rounded-full mb-8 overflow-hidden">
+        <div id="progress" class="progress-bar bg-indigo-500 h-full" style="width: 0%"></div>
+    </div>
+
+    <!-- Main Game Container -->
+    <main id="game-container" class="max-w-3xl w-full bg-slate-800 rounded-2xl p-6 md:p-8 shadow-2xl border border-slate-700">
+        <div id="question-screen">
+            <div id="topic-badge" class="mb-4 inline-block px-3 py-1 bg-indigo-900/50 text-indigo-300 text-xs font-bold rounded-full border border-indigo-700 hidden">
+                TEMA 13
+            </div>
+            <h2 id="question-text" class="text-lg md:text-xl font-semibold mb-8 leading-relaxed">
+                Cargando pregunta...
+            </h2>
+            <div id="options-container" class="space-y-3">
+                <!-- Options injected here -->
+            </div>
+            <button id="next-btn" class="mt-8 w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl transition shadow-lg hidden">
+                Continuar
+            </button>
+        </div>
+
+        <!-- Result Screen -->
+        <div id="result-screen" class="hidden text-center py-10">
+            <h2 class="text-3xl font-bold mb-4">¡Bloque Completado!</h2>
+            <div class="text-6xl mb-6">🎯</div>
+            <p id="final-stats" class="text-lg text-slate-300 mb-8"></p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <button onclick="location.reload()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-8 rounded-xl transition">
+                    Repetir Bloque
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Data mapped from user input (normalized IDs for the quiz logic)
+        const questions = [
+            { id: 108, q: "En los cambios biológicos del proceso de envejecimiento debemos destacar:", options: ["el deterioro generalizado y progresivo de todos os sistemas que componen en organismo", "el deterioro social del individuo", "el deterioro principal del aspecto exterior del individuo", "el deterioro biológico del entorno del individuo"], correct: 0 },
+            { id: 109, q: "En las manifestaciones a nivel del sistema musculoesquelético del envejecimiento debemos destacar:", options: ["disminución de la masa ósea y su desmineralización", "disminución de la talla y la cirrosis dorsal", "alteración del eje mecánico, equilibro corporal, alineación y marcha", "Todas son ciertas"], correct: 3 },
+            { id: 110, q: "Otros factores biológicos a tener en cuenta en el envejecimiento, en la referencia al mantenimiento de la independencia funcional son:", options: ["la insuficiencia cardiaca presente en una gran mayoría de ancianos", "la arteriosclerosis", "la insuficiencia del fuelle aórtico", "las rigideces vasculares"], correct: 1 },
+            { id: 111, q: "El aumento de la respiración abdominal, la disminución del peso y volumen pulmonar, la reducción de alveolos, la dilación de conductos, así como al disyunción pulmonar son debido a:", options: ["enfisema pulmonar en el anciano", "bronquitis crónica en el anciano", "Pulmón senil del anciano", "insuficiencia cardiaca congestiva en el anciano"], correct: 2 },
+            { id: "1 (bis)", q: "A grandes rasgos destacamos algunas modificaciones biológicas de la vejes, como:", options: ["Definición en la masticación, motilidad e hipoperistaltismo", "Disminución del filtrado glomerular y tono muscular de la vejiga. Disminución de la producción hormonal. Disminución de la respuesta inmunitaria", "Disminución del tamaño y peso del cerebro, enlentecimiento generalizado del movimiento y disminución de la sensibilidad", "Todas son ciertas"], correct: 3 },
+            { id: "2 (bis)", q: "Desde el campo de la visión y respecto al envejecimiento debemos de mostrar especial cuidado en valorar la:", options: ["Perdida de agudeza y la disminución del campo visual, que junto a la aparición de la opacidad del cristalino, merma la independencia funcional del anciano", "Aumento del arco senil, la ptosis y la disminución de la secreción lagrimal", "A y B son correctas", "Todas son falsas"], correct: 2 },
+            { id: "1 (ter)", q: "En el análisis de las necesidades del anciano hay que tener en cuenta:", options: ["La capacidad residual que mantiene ágil al anciano", "Las enfermedades crónicas y agudas con cominantes", "Los cambios fisiológicos, la capacidad de independencia y los factores que intervienen en la satisfacción de las necesidades y condicionan su autonomía", "La A y C son verdaderas"], correct: 2 },
+            { id: "2 (ter)", q: "El patrón respiratorio ineficaz, limpieza ineficaz de las vías aéreas y riesgo de aspiración, son en definitiva:", options: ["El resultado de la valoración de un paciente", "Algunas etiquetas diagnosticas de enfermeria", "Aspectos clínicos de una neumonía senil", "La A y B son ciertas"], correct: 1 },
+            { id: "3 (ter)", q: "El anciano conoce los alimentos y nutrientes que toma, los adquiere, tiene recursos, los elige y elabora, los ingiere y digiere con normalidad. Esto nos indica que:", options: ["El anciano dispone de los recursos sociales necesarios para alimentarse", "El anciano tiene un nivel de estudios adecuado que le permite alimentarse", "El anciano esta bien psíquicamente para comer solo en casa", "El anciano manifiesta su independencia respecto a la necesidad de comer y alimentarse"], correct: 3 },
+            { id: "4 (ter)", q: "La valoración periódica de las áreas funcionales, adecuación del hogar, visita al odontólogo, evaluación de alimentación y potenciar el acto de comer socialmente:", options: ["Estimula el apetito y socializa al anciano", "Son algunas recomendaciones practicas para favorecer la autonomía en el anciano", "Son estudios a desarrollar por el enfermer@ de atención primaria", "A y C son ciertas"], correct: 1 },
+            { id: "1 (T13)", q: "Desde el punto de vista de la necesidad de eliminación. Cuando el anciano mantiene patrones adecuados, conserva capacidades psicomotoras y mantiene hábitos higiénicos:", topic: "TEMA 13", options: ["El anciano ha aprendido la información facilitada", "El anciano no necesita ayuda especializada de los servicios sociales", "El anciano es independiente respecto a la necesidad de eliminación", "Todas son falsas"], correct: 2 },
+            { id: "2 (T13)", q: "Son manifestaciones de dependencia respecto a la necesidad de eliminación:", topic: "TEMA 13", options: ["El incremento de las micciones, perdidas de orina, urgencia urinaria, nicturia", "Polaquiuria", "Reducción del chorro de micción y esfuerzo excesivo al defecar", "Todas son correctas"], correct: 3 },
+            { id: "3 (T13)", q: "La incontinencia urinaria de urgencia y la retención urinaria son:", topic: "TEMA 13", options: ["Una patología derivada de una hipertrofia maligna de próstata", "Es una consecuencia lógica tras una histerectomía vaginal en la mujer senil multípara", "Son posibles etiquetas diagnosticas de enfermeria, respecto a la necesidad de eliminación", "Consecuencia de una infección por estafilococo"], correct: 2 },
+            { id: "4 (T13)", q: "Entendemos que el anciano es dependiente respecto a la necesidad de moverse y mantener posturas adecuadas, cuando:", topic: "TEMA 13", options: ["Necesita ayuda para comer y prepararse la comida", "Necesita ayuda parcial o total para las actividades de la vida diaria (AVD)", "La A y B son verdaderas", "La A y B son falsas"], correct: 1 },
+            { id: "5 (T13)", q: "Deterioro de movilidad física, deambulación, silla de ruedas, traslación, fatiga y riesgo de intolerancia a la actividad. Son etiquetas de:", topic: "TEMA 13", options: ["La necesidad del mantenimiento de la higiene corporal", "De la necesidad de eliminación", "De la necesidad de desarrollo social y estructura anatómica", "De la necesidad de moverse y mantener posturas adecuadas"], correct: 3 },
+            { id: "1 (Sueño)", q: "¿Qué entendemos por fase REM?", options: ["Es la respuesta efectiva muscular del anciano al ser estimulado en la región pretibial", "Es una de las fases del sueño", "Es la última etapa del sueño", "B y C son correctas"], correct: 3 },
+            { id: "2 (Sueño)", q: "A la hora de valorar al anciano conforme a la necesidad de dormir y descansar, debemos de prestar especial atención a:", options: ["Identificar rutinas y pautas de comportamiento habitual", "Identificar la medicación que toma", "Hablar con los vecinos y contrastar opiniones", "La C es falsa"], correct: 3 },
+            { id: "3 (Sueño)", q: "Control de ingesta de líquidos, aumento de actividad física, entorno adecuado y prendas confortables, van encaminadas a:", options: ["Mantener un buen control de la diabetes tipo II", "La A es cierta pero solo cuando hay hiperglucemia mantenida", "Son acciones encaminadas a favorecer el dormir y descansar", "Son acciones que normalmente se realizan en hospitales geriátricos especializados"], correct: 2 },
+            { id: "4 (Sueño)", q: "En el anciano, un aspecto externo descuidado, deterioro de piel, olor corporal, placa dental y halitosis, así como uso exagerado de cosméticos:", options: ["Existe algún trastorno mental y adaptativo", "No se lava", "Tiene problemas sociales y familiares", "Todas son correctas"], correct: 0 }
+        ];
+
+        let currentQuestion = 0;
+        let correctAnswers = 0;
+        let wrongAnswers = 0;
+        let answered = false;
+
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const nextBtn = document.getElementById('next-btn');
+        const currentIndexLabel = document.getElementById('current-index');
+        const correctCountLabel = document.getElementById('correct-count');
+        const wrongCountLabel = document.getElementById('wrong-count');
+        const progressBar = document.getElementById('progress');
+        const topicBadge = document.getElementById('topic-badge');
+        const questionScreen = document.getElementById('question-screen');
+        const resultScreen = document.getElementById('result-screen');
+        const finalStats = document.getElementById('final-stats');
+
+        function loadQuestion() {
+            answered = false;
+            nextBtn.classList.add('hidden');
+            const qData = questions[currentQuestion];
+            
+            // Handle Topic Badge
+            if (qData.topic) {
+                topicBadge.innerText = qData.topic;
+                topicBadge.classList.remove('hidden');
+            } else {
+                topicBadge.classList.add('hidden');
+            }
+
+            questionText.innerText = `${qData.id}. ${qData.q}`;
+            currentIndexLabel.innerText = `${currentQuestion + 1} / ${questions.length}`;
+            progressBar.style.width = `${((currentQuestion) / questions.length) * 100}%`;
+            
+            optionsContainer.innerHTML = '';
+            qData.options.forEach((opt, index) => {
+                const button = document.createElement('div');
+                button.className = 'option-card p-4 rounded-xl flex items-center gap-4 bg-slate-800/50 border-slate-700';
+                button.innerHTML = `
+                    <span class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center font-bold text-sm shrink-0">
+                        ${String.fromCharCode(65 + index)}
+                    </span>
+                    <span class="text-md leading-tight">${opt}</span>
+                `;
+                button.onclick = () => selectOption(index, button);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function selectOption(index, element) {
+            if (answered) return;
+            answered = true;
+            
+            const correctIndex = questions[currentQuestion].correct;
+            const options = optionsContainer.children;
+
+            if (index === correctIndex) {
+                element.classList.add('correct');
+                element.classList.remove('bg-slate-800/50');
+                correctAnswers++;
+                correctCountLabel.innerText = correctAnswers;
+            } else {
+                element.classList.add('incorrect');
+                element.classList.remove('bg-slate-800/50');
+                options[correctIndex].classList.add('correct');
+                options[correctIndex].classList.remove('bg-slate-800/50');
+                wrongAnswers++;
+                wrongCountLabel.innerText = wrongAnswers;
+            }
+
+            nextBtn.classList.remove('hidden');
+        }
+
+        nextBtn.onclick = () => {
+            currentQuestion++;
+            if (currentQuestion < questions.length) {
+                loadQuestion();
+            } else {
+                progressBar.style.width = "100%";
+                showResults();
+            }
+        };
+
+        function showResults() {
+            questionScreen.classList.add('hidden');
+            resultScreen.classList.remove('hidden');
+            const score = Math.round((correctAnswers / questions.length) * 100);
+            
+            let message = "¡Sigue estudiando!";
+            if(score >= 80) message = "¡Excelente nivel!";
+            else if(score >= 50) message = "¡Buen trabajo!";
+
+            finalStats.innerHTML = `
+                <p class="text-2xl mb-4 font-semibold text-indigo-300">${message}</p>
+                Aciertos: <span class="text-green-500 font-bold">${correctAnswers}</span><br>
+                Errores: <span class="text-red-500 font-bold">${wrongAnswers}</span><br><br>
+                <div class="text-5xl font-bold text-white mb-2">${score}%</div>
+                <p class="text-sm text-slate-400">Puntuación total</p>
+            `;
+        }
+
+        loadQuestion();
+    </script>
+</body>
+</html>
